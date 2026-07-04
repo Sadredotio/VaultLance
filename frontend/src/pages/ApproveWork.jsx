@@ -60,8 +60,10 @@ const ApproveWork = () => {
 
     setRejecting(true);
     try {
-      await API.post(`/contracts/${contractId}/disputes`, {
+      await API.post(`/disputes`, {
+        contractId: contractId,
         type: 'work_quality_issue',
+        title: 'Work rejected by client',
         description: rejectReason
       });
       toast.success('Dispute filed. This will be reviewed by an admin.');

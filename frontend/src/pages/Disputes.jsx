@@ -16,6 +16,8 @@ const Disputes = () => {
   const [comment, setComment] = useState('');
   const [commenting, setCommenting] = useState(false);
   const [filter, setFilter] = useState('all'); // all, open, resolved
+  const [revisionNotes, setRevisionNotes] = useState('');
+  const [requestingRevision, setRequestingRevision] = useState(false);
 
   useEffect(() => {
     fetchDisputes();
@@ -23,7 +25,7 @@ const Disputes = () => {
 
   const fetchDisputes = async () => {
     try {
-      const res = await API.get('/disputes/my-disputes');
+      const res = await API.get('/disputes/user/me');
       setDisputes(res.data);
     } catch (error) {
       console.error('Error:', error);
@@ -41,7 +43,7 @@ const Disputes = () => {
 
     setCommenting(true);
     try {
-      await API.post(`/disputes/${selectedDispute._id}/comment`, {
+      await API.put(`/disputes/${selectedDispute._id}/comment`, {
         comment: comment
       });
       toast.success('Comment added');
@@ -54,6 +56,23 @@ const Disputes = () => {
       toast.error(error.response?.data?.message || 'Failed to add comment');
     } finally {
       setCommenting(false);
+    }
+  };
+
+  const handleRequestRevision = async () => {
+    setRequestingRevision(true);
+    try {
+      const { data } = await API.put(`/disputes/${selectedDispute._id}/request-revision`, {
+        revisionNotes: revisionNotes.trim() || undefined
+      });
+      toast.success('Revision requested! The freelancer has been notified to redo and resubmit the work.');
+      setRevisionNotes('');
+      setSelectedDispute({ ...selectedDispute, status: 'resolved', resolution: 'request_revision' });
+      fetchDisputes();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to request revision');
+    } finally {
+      setRequestingRevision(false);
     }
   };
 
@@ -232,6 +251,34 @@ const Disputes = () => {
                   </div>
                 </div>
 
+                {/* Request Revision (Client only, while dispute is open) */}
+                {selectedDispute.status !== 'resolved' &&
+                  selectedDispute.contractId?.clientId?.toString() === user?._id?.toString() && (
+                    <div className="mb-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                      <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
+                        🔄 Send Back for Revision
+                      </h3>
+                      <p className="text-xs text-blue-700 mb-3">
+                        Instead of waiting for admin review, you can send this straight back
+                        to the freelancer to fix and resubmit.
+                      </p>
+                      <textarea
+                        value={revisionNotes}
+                        onChange={(e) => setRevisionNotes(e.target.value)}
+                        placeholder="What needs to be changed? (optional)"
+                        className="w-full border-2 border-blue-200 rounded-lg p-3 focus:outline-none focus:border-blue-500 transition text-sm bg-white"
+                        rows={2}
+                      />
+                      <button
+                        onClick={handleRequestRevision}
+                        disabled={requestingRevision}
+                        className="w-full mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-bold disabled:bg-gray-400"
+                      >
+                        {requestingRevision ? '⏳ Sending back...' : '🔄 Request Revision & Resubmit'}
+                      </button>
+                    </div>
+                )}
+
                 {/* Add Comment */}
                 {selectedDispute.status !== 'resolved' && (
                   <div>
@@ -254,7 +301,13 @@ const Disputes = () => {
 
                 {selectedDispute.status === 'resolved' && (
                   <div className="p-4 bg-green-50 rounded-lg text-sm text-green-900">
-                    <p className="font-bold">✅ This dispute has been resolved.</p>
+                    {selectedDispute.resolution === 'request_revision' ? (
+                      <p className="font-bold">
+                        🔄 A revision was requested. The freelancer can now redo and resubmit the work.
+                      </p>
+                    ) : (
+                      <p className="font-bold">✅ This dispute has been resolved.</p>
+                    )}
                   </div>
                 )}
               </div>

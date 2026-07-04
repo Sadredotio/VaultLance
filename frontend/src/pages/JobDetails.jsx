@@ -4,6 +4,7 @@ import AuthContext from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import API from '../api';
 import toast from 'react-hot-toast';
+import { MessageCircle } from 'lucide-react';
 
 const JobDetails = () => {
   const { jobId } = useParams(); 
@@ -161,6 +162,54 @@ const JobDetails = () => {
         <p className="text-gray-700 text-lg mb-8">{job.description}</p>
         <p className="text-3xl font-bold text-green-700 mb-8">Budget: ${job.budget}</p>
 
+        {/* --- PROJECT DETAILS: Requirements, Timeline, Skills, Outcomes --- */}
+        <div className="mb-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+          {job.requirements && (
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+              <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+                📋 Requirements
+              </h4>
+              <p className="text-gray-600 text-sm whitespace-pre-wrap leading-relaxed">{job.requirements}</p>
+            </div>
+          )}
+
+          {job.timeline && (
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+              <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+                ⏰ Timeline
+              </h4>
+              <p className="text-gray-600 text-sm">{job.timeline}</p>
+            </div>
+          )}
+
+          {job.skillsRequired && job.skillsRequired.length > 0 && (
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+              <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                🛠️ Required Skills
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {job.skillsRequired.map((skill, idx) => (
+                  <span
+                    key={idx}
+                    className="bg-blue-50 text-blue-700 text-xs px-3 py-1.5 rounded-full border border-blue-200 font-semibold"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {job.expectedOutcomes && (
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+              <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+                🎯 Expected Outcomes
+              </h4>
+              <p className="text-gray-600 text-sm whitespace-pre-wrap leading-relaxed">{job.expectedOutcomes}</p>
+            </div>
+          )}
+        </div>
+
         {/* --- CLIENT PROFILE CARD --- */}
         {client && (
           <div className="mb-10 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-8 shadow-lg">
@@ -237,6 +286,16 @@ const JobDetails = () => {
                   )}
                 </div>
 
+                {/* Message Client Button (Freelancer only) */}
+                {user.role === 'freelancer' && (
+                  <button
+                    onClick={() => navigate(`/messages?with=${client._id}&job=${jobId}`)}
+                    className="mt-4 inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-semibold shadow-sm transition"
+                  >
+                    <MessageCircle size={18} /> Message Client
+                  </button>
+                )}
+
                 {/* Trustworthiness Indicator */}
                 <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                   <p className="text-green-800 font-semibold text-sm flex items-center gap-2">
@@ -288,7 +347,7 @@ const JobDetails = () => {
                     {/* Left: Freelancer Avatar & Info */}
                     <div 
                       className="flex items-center gap-4 cursor-pointer flex-1 hover:opacity-80 transition"
-                      onClick={() => navigate(`/freelancer-profile/${app.freelancerId}`)}
+                      onClick={() => navigate(`/freelancer-profile/${typeof app.freelancerId === 'string' ? app.freelancerId : app.freelancerId._id}`)}
                     >
                       {/* Avatar */}
                       <img 
@@ -323,6 +382,15 @@ const JobDetails = () => {
 
                     {/* Right: Action Buttons */}
                     <div className="flex gap-2 ml-4">
+                      {/* Message this applicant */}
+                      <button
+                        onClick={() => navigate(`/messages?with=${typeof app.freelancerId === 'string' ? app.freelancerId : app.freelancerId._id}&job=${jobId}`)}
+                        className="bg-gray-100 text-gray-700 px-4 py-2 rounded font-bold shadow hover:bg-gray-200 whitespace-nowrap flex items-center gap-1.5"
+                        title="Message this applicant"
+                      >
+                        <MessageCircle size={16} /> Message
+                      </button>
+
                       {/* Show "Hire & Fund" only if job is open and app is pending */}
                       {job.status === 'open' && app.status === 'pending' && (
                         <button 

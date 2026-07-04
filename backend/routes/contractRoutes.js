@@ -6,6 +6,7 @@ const {
   releaseFunds,
   approveWork,
   getContracts,
+  getFreelancerStats,
   getContractById,
   applyForJob, 
   acceptApplication, 
@@ -23,6 +24,8 @@ router.post('/apply', protect, applyForJob); // Freelancer applies to job
 
 router.get('/', protect, getContracts); // Get all user's contracts
 router.post('/', protect, createContract); // Create a proposal (client creates for freelancer)
+
+router.get('/stats/freelancer', protect, getFreelancerStats); // Freelancer dashboard stats
 
 router.get('/:id', protect, getContractById); // Get specific contract
 router.put('/:id/accept', protect, acceptApplication); // Client accepts application

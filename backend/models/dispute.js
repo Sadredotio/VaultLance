@@ -56,7 +56,7 @@ const disputeSchema = new mongoose.Schema({
   // Resolution
   resolution: {
     type: String,
-    enum: ['refund_client', 'pay_freelancer', 'split_payment', null],
+    enum: ['refund_client', 'pay_freelancer', 'split_payment', 'request_revision', null],
     default: null
   },
   resolutionDetails: String,

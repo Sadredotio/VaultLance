@@ -9,9 +9,6 @@ const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
-// @desc    Register new user
-// @route   POST /api/users/register
-// @access  Public
 const registerUser = async (req, res) => {
   const { name, email, password, role } = req.body;
 
@@ -24,8 +21,8 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: 'Please provide all required fields' });
     }
 
-    // 2. Check if user already exists
-    const userExists = await User.findOne({ email });
+    // 2. Check if user already exists (case-insensitive)
+    const userExists = await User.findOne({ email: email.toLowerCase() });
     if (userExists) {
       console.log(`❌ User already exists: ${email}`);
       return res.status(400).json({ message: '❌ User already exists' });
@@ -41,7 +38,7 @@ const registerUser = async (req, res) => {
     console.log(`⚙️ Creating user with hashing...`);
     const user = await User.create({
       name,
-      email,
+      email: email.toLowerCase(),
       password, // <--- Sent as plain text, pre-save hook hashes it
       role,
       walletBalance: 1000
@@ -81,7 +78,7 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
-  try {
+  
     // 1. Validate input
     if (!email || !password) {
       return res.status(400).json({ message: 'Please provide email and password' });
@@ -89,44 +86,25 @@ const loginUser = async (req, res) => {
 
     console.log(`\n🔐 LOGIN ATTEMPT: ${email}`);
 
-    // 2. Find user by email
-    const user = await User.findOne({ email });
+    // 2. Find user by email (case-insensitive)
+    const user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
-      console.log(`❌ User not found: ${email}`);
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(404).json({ message: 'User Not Found' });
     }
 
-    console.log(`✅ User found: ${user.name} (${user._id})`);
-    console.log(`🔍 Password check details:`);
-    console.log(`   - Provided password length: ${password.length}`);
-    console.log(`   - Stored hash length: ${user.password.length}`);
-    console.log(`   - Stored hash starts with: ${user.password.substring(0, 15)}`);
-    console.log(`   - Is hash valid bcrypt format: ${user.password.startsWith('$2b$') || user.password.startsWith('$2a$')}`);
-    
     // 3. Check password matches the hash
-    let isMatch = false;
-    try {
-      isMatch = await bcrypt.compare(password, user.password);
-    } catch (err) {
-      console.error(`❌ bcrypt.compare error:`, err.message);
-      return res.status(401).json({ message: 'Password comparison failed. Invalid hash format in database.' });
+    const isValidPassword = await bcrypt.compare(password, user.password)
+    
+    if(!isValidPassword){
+      return res.status(400).json({message: "Invalid email or password"})
     }
     
-    console.log(`⚙️ bcrypt.compare result: ${isMatch}`);
-    
-    if (!isMatch) {
-      console.log(`❌ Password mismatch for user: ${email}`);
-      return res.status(401).json({ message: 'Invalid email or password' });
-    }
+    const token = jwt.sign({id: user._id}, process.env.JWT_SECRET)
 
-    console.log(`✅ Password matched for: ${email}`);
+    res.cookie("token", token);
 
-    // 4. Password matches - return user data with token
-    const token = generateToken(user._id);
-    console.log(`✅ Token generated for: ${email}`);
-
-    res.json({
+    res.status(200).json({
       _id: user._id,
       name: user.name,
       email: user.email,
@@ -140,13 +118,10 @@ const loginUser = async (req, res) => {
       walletBalance: user.walletBalance,
       token: token,
     });
+    
+    console.log(`✅ LOGIN SUCCESSFUL: ${email} (Role: ${user.role})\n`);
 
-    console.log(`✅ LOGIN SUCCESSFUL: ${email}\n`);
-  } catch (error) {
-    console.error('❌ Login Error:', error.message);
-    console.error('Stack:', error.stack);
-    res.status(500).json({ message: error.message });
-  }
+  
 };
 
 // @desc    Forgot Password (Generates Token)
@@ -158,7 +133,7 @@ const forgotPassword = async (req, res) => {
   console.log("1. Request received for email:", email); // Debug Log 1
 
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       console.log("2. User not found"); // Debug Log 2
       return res.status(404).json({ message: "No user found with this email" });

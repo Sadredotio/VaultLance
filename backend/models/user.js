@@ -4,7 +4,28 @@ const bcrypt = require('bcryptjs');
 const userSchema = mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
+  password: { type: String, required: false ,default : null},
+
+  googleId: {
+    type: String,
+    default: null,
+  },
+  
+  githubId: {
+    type: String,
+    default: null,
+  },
+  
+  linkedinId: {
+    type: String,
+    default: null,
+  },
+
+  provider: {
+    type: String,
+    enum: ["local", "google","github", "linkedin"],
+    default: "local"
+},
   
   // Profile Fields
   headline: { type: String, default: "" },
@@ -35,11 +56,9 @@ userSchema.pre('save', async function() {
     console.log(`\n🔐 PRE-SAVE HOOK: Email=${user.email}`);
     
     // Only hash if password is modified
-    if (!user.isModified('password')) {
-      console.log(`⏭️ Password not modified, skipping hash`);
-      return; // Just return, don't call next()
-    }
-
+    if (!user.password || !user.isModified('password')) {
+      return;
+  }
     console.log(`🔑 Original password length: ${user.password.length}`);
     console.log(`🔑 Original password (first 10 chars): ${user.password.substring(0, 10)}`);
 

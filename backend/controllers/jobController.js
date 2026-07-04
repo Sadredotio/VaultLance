@@ -6,7 +6,7 @@ const Contract = require('../models/contract');
 // @access  Private (Only Clients)
 const createJob = async (req, res) => {
   try {
-    const { title, description, budget } = req.body;
+    const { title, description, budget, requirements, timeline, skillsRequired, expectedOutcomes } = req.body;
     const User = require('../models/user');
     const Transaction = require('../models/transaction');
 
@@ -15,9 +15,20 @@ const createJob = async (req, res) => {
     console.log(`Title: ${title}`);
     console.log(`Budget: ${budget}`);
 
-    if (!title || !description || !budget) {
+    if (!title || !description || !budget || !requirements || !timeline || !expectedOutcomes) {
       console.log(`❌ Missing fields`);
-      return res.status(400).json({ message: 'Please add all fields' });
+      return res.status(400).json({ message: 'Please add all required fields: title, description, budget, requirements, timeline, and expected outcomes' });
+    }
+
+    const skillsArray = Array.isArray(skillsRequired)
+      ? skillsRequired.map((s) => s.trim()).filter(Boolean)
+      : typeof skillsRequired === 'string'
+      ? skillsRequired.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+
+    if (skillsArray.length === 0) {
+      console.log(`❌ No skills specified`);
+      return res.status(400).json({ message: 'Please specify at least one required skill' });
     }
 
     if (budget <= 0) {
@@ -52,6 +63,10 @@ const createJob = async (req, res) => {
       title,
       description,
       budget,
+      requirements,
+      timeline,
+      skillsRequired: skillsArray,
+      expectedOutcomes,
       postedBy: req.user._id,
       status: 'open'
     });
@@ -168,16 +183,16 @@ const getJobStats = async (req, res) => {
       stats.completed = await Job.countDocuments({ postedBy: req.user._id, status: 'completed' });
     } else {
       // Count Freelancer's jobs (Based on contracts they are part of)
-      const myContracts = await Contract.find({ 
+      const myContracts = await Contract.find({
         freelancerId: req.user._id,
         status: { $in: ['active', 'submission_pending', 'released'] }
       });
       const jobIds = myContracts.map(c => c.jobId);
 
       stats.total = myContracts.length;
-      stats.in_progress = await Job.countDocuments({ _id: { $in: jobIds }, status: 'in_progress' });
-      stats.completed = await Job.countDocuments({ _id: { $in: jobIds }, status: 'completed' });
-      stats.open = await Contract.countDocuments({ freelancerId: req.user._id, status: 'pending' });
+      stats.open = await Contract.countDocuments({ freelancerId: req.user._id, status: 'active' }); // contracts ready for "Submit Work"
+      stats.in_progress = await Contract.countDocuments({ freelancerId: req.user._id, status: 'submission_pending' }); // submitted, awaiting client approval
+      stats.completed = await Contract.countDocuments({ freelancerId: req.user._id, status: 'released' }); // approved & paid
     }
 
     res.json(stats);
@@ -292,4 +307,4 @@ module.exports = {
   getJobStats,
   closeJob,
   deleteJob
-}; 
+};

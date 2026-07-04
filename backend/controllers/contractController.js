@@ -61,7 +61,7 @@ const fundContract = async (req, res) => {
     // A. Record transaction for contract funding
     await Transaction.create({
       userId: client._id,
-      type: 'contract_funded',
+      type: 'job_fund',
       contractId: contract._id,
       jobId: contract.jobId,
       amount: contract.amount,
@@ -179,8 +179,33 @@ const getContracts = async (req, res) => {
     // Find contracts where the user is either the client or freelancer
     const contracts = await Contract.find({
         $or: [{ clientId: req.user._id }, { freelancerId: req.user._id }]
-    });
+    })
+      .populate('jobId', 'title description budget status')
+      .populate('clientId', 'name avatar')
+      .populate('freelancerId', 'name avatar rating headline experience skills')
+      .sort({ createdAt: -1 });
     res.json(contracts);
+};
+
+// @desc    Get dashboard stats for a freelancer (based on their contracts)
+// @route   GET /api/contracts/stats/freelancer
+// @access  Private (Freelancer)
+const getFreelancerStats = async (req, res) => {
+  try {
+    const freelancerId = req.user._id;
+
+    const total = await Contract.countDocuments({ freelancerId });
+    // "Open" = contracts ready to work on / submit (active), plus legacy 'new' ones awaiting funding
+    const open = await Contract.countDocuments({ freelancerId, status: { $in: ['active', 'new'] } });
+    // "In Progress" = work submitted, waiting on client review
+    const in_progress = await Contract.countDocuments({ freelancerId, status: 'submission_pending' });
+    // "Completed" = client approved, payment released
+    const completed = await Contract.countDocuments({ freelancerId, status: 'released' });
+
+    res.json({ total, open, in_progress, completed });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
 };
 
 const applyForJob = async (req, res) => {
@@ -244,8 +269,9 @@ const acceptApplication = async (req, res) => {
       return res.status(400).json({ message: 'Application already processed' });
     }
 
-    // Update contract status
-    contract.status = 'new'; // Ready for funding
+    // Money was already deducted from client's wallet when the job was posted,
+    // so there's nothing left to "fund" separately — go straight to active.
+    contract.status = 'active'; // Ready for freelancer to start work / submit
     await contract.save();
 
     // Update job status from 'open' to 'in_progress'
@@ -255,15 +281,29 @@ const acceptApplication = async (req, res) => {
     const freelancer = await User.findById(contract.freelancerId);
     const client = await User.findById(req.user._id);
     const job = await Job.findById(contract.jobId);
-    
+
+    // Record the funding transaction now, since escrow is confirmed at acceptance
+    await Transaction.create({
+      userId: client._id,
+      type: 'job_fund',
+      contractId: contract._id,
+      jobId: contract.jobId,
+      amount: contract.amount,
+      balanceBefore: client.walletBalance,
+      balanceAfter: client.walletBalance,
+      status: 'completed',
+      description: `Contract funded automatically on acceptance - escrow confirmed for "${job.title}"`,
+      ipAddress: req.ip
+    });
+
     await sendEmail({
       email: freelancer.email,
       subject: '🎉 Your Application was Accepted!',
-      message: `Congratulations! Client ${client.name} has accepted your application for the job "${job.title}". The payment will be locked in escrow once the client funds the contract. Be ready to start work!`
+      message: `Congratulations! Client ${client.name} has accepted your application for the job "${job.title}". The payment is locked in escrow — you can start work right away!`
     });
 
     res.json({ 
-      message: 'Application accepted', 
+      message: 'Application accepted and contract funded', 
       contract,
       jobStatus: 'in_progress'
     });
@@ -448,11 +488,12 @@ const approveWork = async (req, res) => {
 
     // --- THE APPROVAL & FUND RELEASE LOGIC ---
 
-    // 1. Find Freelancer and Client
+    // 1. Find Freelancer, Client, and Job
     const freelancer = await User.findById(contract.freelancerId);
     const client = await User.findById(contract.clientId);
-    
-    // 2. Record transaction for freelancer (money received)
+    const job = await Job.findById(contract.jobId);
+
+    // 2. Release payment to freelancer
     const freelancerBalanceBefore = freelancer.walletBalance;
     freelancer.walletBalance += contract.amount;
     await freelancer.save();
@@ -470,16 +511,37 @@ const approveWork = async (req, res) => {
       ipAddress: req.ip
     });
 
-    // 3. Update contract
+    // 3. Refund difference to client if freelancer bid less than job budget
+    const refundAmount = job.budget - contract.amount;
+    if (refundAmount > 0) {
+      const clientBalanceBefore = client.walletBalance;
+      client.walletBalance += refundAmount;
+      await client.save();
+
+      await Transaction.create({
+        userId: client._id,
+        type: 'refund',
+        contractId: contract._id,
+        jobId: contract.jobId,
+        amount: refundAmount,
+        balanceBefore: clientBalanceBefore,
+        balanceAfter: client.walletBalance,
+        status: 'completed',
+        description: `Escrow refund: job budget $${job.budget} - freelancer paid $${contract.amount} = $${refundAmount} returned`,
+        ipAddress: req.ip
+      });
+    }
+
+    // 4. Update contract
     contract.status = 'released';
     contract.clientApprovedAt = new Date();
     contract.clientApprovalNotes = req.body.approvalNotes || 'Work approved by client';
     await contract.save();
 
-    // 4. Update Job Status to 'completed'
+    // 5. Update Job Status to 'completed'
     await Job.findByIdAndUpdate(contract.jobId, { status: 'completed' });
 
-    // 5. Send notifications
+    // 6. Send notifications
     await sendEmail({
       email: freelancer.email,
       subject: '💰 Payment Released - Work Approved!',
@@ -489,12 +551,14 @@ const approveWork = async (req, res) => {
     await sendEmail({
       email: client.email,
       subject: '✅ Work Completed & Payment Sent',
-      message: `You have approved the work. Payment of $${contract.amount} has been transferred to the freelancer.`
+      message: `You have approved the work. Payment of $${contract.amount} has been transferred to the freelancer.${refundAmount > 0 ? ` A refund of $${refundAmount} (unused escrow) has been returned to your wallet.` : ''}`
     });
 
     res.json({ 
       message: 'Work approved! Funds released to freelancer wallet.',
       freelancerNewBalance: freelancer.walletBalance,
+      clientRefund: refundAmount > 0 ? refundAmount : 0,
+      clientNewBalance: client.walletBalance,
       contractStatus: contract.status,
       jobStatus: 'completed'
     });
@@ -510,6 +574,7 @@ module.exports = {
   releaseFunds,
   approveWork,
   getContracts,
+  getFreelancerStats,
   getContractById,
   applyForJob, 
   acceptApplication, 

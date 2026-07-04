@@ -64,6 +64,29 @@ const transactionSchema = new mongoose.Schema({
     default: 'completed'
   },
 
+  razorpayOrderId: { 
+    type: String,
+    default: null 
+  },
+
+  razorpayPaymentId: { 
+    type: String, 
+    default: null 
+  },
+  
+  payoutDetails: {
+    accountHolderName: { type: String, default: null },
+    accountNumber: { type: String, default: null },
+    ifscCode: { type: String, default: null },
+    upiId: { type: String, default: null }
+  },
+
+  relatedTransactionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Transaction',
+    default: null
+  },
+
   // Description/Notes
   description: String,
   failureReason: String,

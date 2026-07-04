@@ -1,10 +1,12 @@
 import { useContext, useState, useEffect } from 'react';
 import AuthContext from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import API from '../api';
+import { getSocket } from '../socket';
 import { 
   LogOut, Wallet, User, Home, Settings, X, 
   Briefcase, History, HelpCircle, PlusCircle, ArrowDownToLine, UserCircle,
-  FileText, AlertCircle, BarChart3, Shield
+  FileText, AlertCircle, BarChart3, Shield, MessageCircle
 } from 'lucide-react'; 
 
 const Navbar = () => {
@@ -13,12 +15,51 @@ const Navbar = () => {
 
   // STATE: Controls whether the sidebar is open
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Sync user changes to localStorage whenever user changes
   useEffect(() => {
     if (user) {
       localStorage.setItem("userInfo", JSON.stringify(user));
     }
+  }, [user]);
+
+  // Fetch unread message count + keep it live via socket
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchUnread = async () => {
+      try {
+        const { data } = await API.get('/messages/unread-count');
+        setUnreadCount(data.count || 0);
+      } catch (err) {
+        // Silently ignore — badge just won't show
+      }
+    };
+
+    fetchUnread();
+
+    const socket = getSocket();
+    if (!socket) return;
+
+    // Any new message anywhere bumps the badge unless we're the sender
+    const handleNewMessage = (msg) => {
+      const myId = user._id;
+      if (msg.senderId !== myId) {
+        setUnreadCount((prev) => prev + 1);
+      }
+    };
+
+    // When messages get marked read (e.g. user opens a conversation), refresh count
+    const handleMessagesRead = () => fetchUnread();
+
+    socket.on('new_message', handleNewMessage);
+    socket.on('messages_read', handleMessagesRead);
+
+    return () => {
+      socket.off('new_message', handleNewMessage);
+      socket.off('messages_read', handleMessagesRead);
+    };
   }, [user]);
 
   const handleLogout = () => {
@@ -29,38 +70,66 @@ const Navbar = () => {
 
   return (
     <>
+      {/* --- BRAND ACCENT BAR (separates header from page body) --- */}
+      <div className="h-1 w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600" />
+
       {/* --- MAIN NAVBAR --- */}
-      <nav className="bg-white shadow-md p-4 flex justify-between items-center relative z-30">
+      <nav className="bg-white/95 backdrop-blur-md shadow-md border-b border-gray-100 px-4 sm:px-6 py-3.5 flex justify-between items-center relative z-30 sticky top-0">
         {/* Logo */}
-        <Link to="/" className="text-2xl font-bold text-blue-600">
-          Escrow<span className="text-gray-800">Platform</span>
+        <Link to="/" className="flex items-center gap-2.5 group">
+          <img
+            src="/logo.png"
+            alt="VaultLance"
+            className="h-10 w-10 rounded-full object-cover border-2 border-blue-100 shadow-sm group-hover:shadow-md transition-shadow"
+          />
+          <span className="text-2xl font-black bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent tracking-tight">
+            VaultLance
+          </span>
         </Link>
 
         {/* User Info Section */}
-        <div className="flex items-center gap-6">
-          
+        <div className="flex items-center gap-3 sm:gap-5">
+
           {/* Main Navbar Wallet */}
-          <div className="hidden md:flex items-center gap-2 bg-green-50 px-4 py-2 rounded-full border border-green-200">
-            <Wallet className="text-green-600 w-5 h-5" />
-            <span className="font-bold text-green-700">${user?.walletBalance || 0}</span>
+          <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-green-50 to-emerald-50 px-4 py-2 rounded-full border border-green-200 shadow-sm">
+            <Wallet className="text-green-600 w-4 h-4" />
+            <span className="font-bold text-green-700 text-sm">${user?.walletBalance || 0}</span>
           </div>
 
-          {/* User Profile Trigger (Opens Sidebar) */}
-          <button 
-            onClick={() => setIsSidebarOpen(true)}
-            className="flex items-center gap-2 hover:bg-gray-50 px-3 py-1 rounded-lg transition"
+          {/* Messages Icon with Unread Badge */}
+          <Link
+            to="/messages"
+            className="relative p-2.5 hover:bg-blue-50 rounded-full transition-colors"
+            title="Messages"
           >
-            <User className="text-gray-500 w-5 h-5" />
+            <MessageCircle className="text-gray-500 w-5 h-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center ring-2 ring-white">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </Link>
+
+          {/* User Profile Trigger (Opens Sidebar) */}
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="flex items-center gap-2.5 hover:bg-gray-50 px-2 sm:px-3 py-1.5 rounded-xl transition-colors border border-transparent hover:border-gray-100"
+          >
+            <img
+              src={user?.avatar?.startsWith('http') ? user.avatar : user?.avatar ? `http://localhost:5000${user.avatar}` : "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
+              alt="Avatar"
+              className="w-8 h-8 rounded-full object-cover border-2 border-blue-100"
+            />
             <div className="text-sm text-left hidden sm:block">
-              <p className="font-semibold">{user?.name}</p>
-              <p className="text-xs text-gray-500 uppercase">{user?.role}</p>
+              <p className="font-bold text-gray-800 leading-tight">{user?.name}</p>
+              <p className="text-[11px] text-blue-600 font-semibold uppercase tracking-wide leading-tight">{user?.role}</p>
             </div>
           </button>
 
           {/* Logout Button */}
-          <button 
+          <button
             onClick={handleLogout}
-            className="p-2 hover:bg-red-50 rounded-full text-red-500 transition"
+            className="p-2.5 hover:bg-red-50 rounded-full text-red-500 transition-colors"
             title="Logout"
           >
             <LogOut className='w-5 h-5'/>
@@ -82,9 +151,9 @@ const Navbar = () => {
       }`}>
         
         {/* 1. Sidebar Header */}
-        <div className="p-6 border-b flex justify-between items-center bg-gray-50">
-          <h2 className="text-xl font-bold text-gray-800">My Account</h2>
-          <button onClick={() => setIsSidebarOpen(false)} className="text-gray-400 hover:text-red-500 transition">
+        <div className="p-6 border-b flex justify-between items-center bg-gradient-to-r from-blue-50 to-indigo-50">
+          <h2 className="text-xl font-black text-gray-800">My Account</h2>
+          <button onClick={() => setIsSidebarOpen(false)} className="text-gray-400 hover:text-red-500 transition p-1 rounded-full hover:bg-white">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -92,9 +161,9 @@ const Navbar = () => {
         {/* 2. Profile Info */}
         <div className="p-6 text-center border-b">
           <img 
-            src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} 
+            src={user?.avatar?.startsWith('http') ? user.avatar : user?.avatar ? `http://localhost:5000${user.avatar}` : "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} 
             alt="Avatar"
-            className="w-16 h-16 rounded-full mx-auto mb-3 border-2 border-gray-100"
+            className="w-16 h-16 rounded-full mx-auto mb-3 border-2 border-blue-100 shadow-sm"
           />
           <h3 className="text-xl font-bold text-gray-800">{user?.name}</h3>
           <p className="text-sm font-medium text-gray-500 uppercase">{user?.role}</p>
@@ -102,7 +171,7 @@ const Navbar = () => {
 
         {/* 3. WALLET CARD */}
         <div className="px-6 py-4">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-5 text-white shadow-lg">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-5 text-white shadow-lg">
             <p className="text-blue-100 text-sm font-medium mb-1">Available Balance</p>
             <h4 className="text-3xl font-black">${user?.walletBalance || 0}</h4>
             
@@ -135,6 +204,19 @@ const Navbar = () => {
             className="flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg font-bold transition-all duration-200 border border-blue-100"
           >
             <UserCircle className="w-5 h-5" /> My Profile
+          </Link>
+
+          <Link 
+            to="/messages" 
+            onClick={() => setIsSidebarOpen(false)} 
+            className="flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg font-medium text-gray-700 transition-all duration-200 relative"
+          >
+            <MessageCircle className="w-5 h-5 text-blue-600" /> Messages
+            {unreadCount > 0 && (
+              <span className="ml-auto bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </Link>
 
           <div className="text-xs font-semibold text-gray-400 uppercase px-4 mt-3 mb-2">Wallet & Finance</div>

@@ -121,11 +121,22 @@ const getAllDisputes = async (req, res) => {
 // @access  Private
 const getMyDisputes = async (req, res) => {
   try {
+    // Find every contract where this user is the client or freelancer,
+    // then find disputes tied to any of those contracts. The previous
+    // version queried 'contractId.clientId' directly on Dispute, but
+    // contractId is a plain ObjectId reference until populated, so that
+    // dot-notation match never found anything — only disputes the user
+    // personally filed ever showed up.
+    const myContracts = await Contract.find({
+      $or: [{ clientId: req.user.id }, { freelancerId: req.user.id }]
+    }).select('_id');
+
+    const myContractIds = myContracts.map((c) => c._id);
+
     const disputes = await Dispute.find({
       $or: [
         { filedBy: req.user.id },
-        { 'contractId.clientId': req.user.id },
-        { 'contractId.freelancerId': req.user.id }
+        { contractId: { $in: myContractIds } }
       ]
     })
       .populate('contractId', 'jobId clientId freelancerId amount')
@@ -337,11 +348,75 @@ const resolveDispute = async (req, res) => {
   }
 };
 
+// @desc    Client requests revision on disputed work — sends it back to the
+//          freelancer to redo and resubmit, without needing admin involvement.
+//          No money moves; contract simply reopens to 'active'.
+// @route   PUT /api/disputes/:id/request-revision
+// @access  Private (Client who filed the dispute, or who owns the contract)
+const requestRevision = async (req, res) => {
+  try {
+    const { revisionNotes } = req.body;
+
+    const dispute = await Dispute.findById(req.params.id);
+    if (!dispute) {
+      return res.status(404).json({ message: 'Dispute not found' });
+    }
+
+    if (dispute.status === 'resolved') {
+      return res.status(400).json({ message: 'This dispute has already been resolved' });
+    }
+
+    const contract = await Contract.findById(dispute.contractId);
+    if (!contract) {
+      return res.status(404).json({ message: 'Contract not found' });
+    }
+
+    // Only the client on this contract can request a revision
+    if (contract.clientId.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Only the client can request a revision' });
+    }
+
+    const freelancer = await User.findById(contract.freelancerId);
+    const client = await User.findById(contract.clientId);
+
+    // Reopen the contract for the freelancer to redo the work.
+    // No money moves — same flow as the original active -> submission_pending -> released cycle.
+    contract.status = 'active';
+    await contract.save();
+
+    // Close out this dispute as resolved-by-revision
+    dispute.resolution = 'request_revision';
+    dispute.resolutionDetails = revisionNotes || 'Client requested a revision of the submitted work';
+    dispute.reviewedBy = req.user.id;
+    dispute.reviewedAt = new Date();
+    dispute.status = 'resolved';
+    await dispute.save();
+
+    // Notify the freelancer they need to redo and resubmit
+    await sendEmail({
+      email: freelancer.email,
+      subject: `Revision Requested - Contract #${contract._id}`,
+      message: `${client.name} has requested a revision on your submitted work. ${
+        revisionNotes ? `Notes: ${revisionNotes}` : ''
+      } Please make the requested changes and resubmit your work.`
+    });
+
+    res.json({
+      message: 'Revision requested. The freelancer can now redo and resubmit the work.',
+      contractStatus: contract.status,
+      disputeStatus: dispute.status
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   fileDispute,
   getAllDisputes,
   getMyDisputes,
   getDisputeById,
   addDisputeComment,
-  resolveDispute
+  resolveDispute,
+  requestRevision
 };

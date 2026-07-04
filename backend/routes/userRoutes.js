@@ -1,41 +1,137 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { registerUser, loginUser, getMe, updateProfile, forgotPassword, resetPassword, getUserById } = require('../controllers/userController');
-const { protect } = require('../middleware/authMiddleware');
-const multer = require('multer');
-const path = require('path');
 
-// 👇 1. SETUP MULTER (Handles the file upload)
+const passport = require("passport");
+const jwt = require("jsonwebtoken");
+const multer = require("multer");
+const path = require("path");
+
+const {
+  registerUser,
+  loginUser,
+  getMe,
+  updateProfile,
+  forgotPassword,
+  resetPassword,
+  getUserById,
+} = require("../controllers/userController");
+
+const { protect } = require("../middleware/authMiddleware");
+
+// ==============================
+// Multer Configuration
+// ==============================
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // Save in 'uploads' folder
+    cb(null, "uploads/");
   },
+
   filename: (req, file, cb) => {
-    // Name the file: user-ID-Timestamp.jpg
-    cb(null, `user-${req.user.id}-${Date.now()}${path.extname(file.originalname)}`);
-  }
+    cb(
+      null,
+      `user-${req.user.id}-${Date.now()}${path.extname(
+        file.originalname
+      )}`
+    );
+  },
 });
 
-const upload = multer({ 
+const upload = multer({
   storage,
-  limits: { fileSize: 5000000 } // Limit: 5MB
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
 });
 
-// 👇 ROUTES
+// ==============================
+// Public Routes
+// ==============================
 
-// IMPORTANT: Public routes (register, login, forgot, reset)
-router.post('/register', registerUser);
-router.post('/login', loginUser);
-router.post('/forgotpassword', forgotPassword);
-router.put('/resetpassword/:token', resetPassword);
+router.post("/register", registerUser);
 
-// IMPORTANT: Specific routes like /me MUST come BEFORE generic :id route
-router.get('/me', protect, getMe);
+router.post("/login", loginUser);
 
-// Generic routes LAST
-router.get('/:id', protect, getUserById);
+router.post("/forgotpassword", forgotPassword);
 
-// 👇 2. ADD 'upload.single' HERE! (Crucial)
-router.put('/profile', protect, upload.single('avatar'), updateProfile);
+router.put("/resetpassword/:token", resetPassword);
+
+// ==============================
+// Google OAuth
+// ==============================
+
+// Redirect user to Google Login
+router.get(
+  "/auth/google",
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+  })
+);
+
+// Google Callback
+router.get(
+  "/auth/google/callback",
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: `${process.env.CLIENT_URL}/login`,
+  }),
+  (req, res) => {
+    const token = jwt.sign(
+      {
+        id: req.user._id,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "30d",
+      }
+    );
+
+    res.redirect(
+      `${process.env.CLIENT_URL}/oauth-success?token=${token}`
+    );
+  }
+);
+
+// GitHub Login
+router.get(
+  "/auth/github",
+  passport.authenticate("github", {
+    scope: ["user:email"],
+  })
+);
+
+// GitHub Callback
+router.get(
+  "/auth/github/callback",
+  passport.authenticate("github", {
+    session: false,
+    failureRedirect: `${process.env.CLIENT_URL}/login`,
+  }),
+  (req, res) => {
+    const token = jwt.sign(
+      { id: req.user._id },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "30d",
+      }
+    );
+
+    res.redirect(
+      `${process.env.CLIENT_URL}/oauth-success?token=${token}`
+    );
+  }
+);
+// Protected Routes
+router.get("/me", protect, getMe);
+
+router.put(
+  "/profile",
+  protect,
+  upload.single("avatar"),
+  updateProfile
+);
+
+// User By ID
+router.get("/:id", protect, getUserById);
 
 module.exports = router;

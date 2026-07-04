@@ -417,7 +417,7 @@ const Login = () => {
 
             {/* Mobile - Show left side info */}
             <div className="lg:hidden mt-6 text-center text-white/70 text-sm">
-              <p>Secure escrow-backed freelancing platform</p>
+              <p>Secure vault-backed freelancing platform</p>
             </div>
           </div>
         </div>

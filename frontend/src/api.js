@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'http://localhost:5000/api', // Your Backend URL
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
 });
 
 // Automatically add Token to every request if we have it
@@ -12,23 +12,19 @@ API.interceptors.request.use((req) => {
       const user = JSON.parse(userInfo);
       if (user && user.token) {
         req.headers.Authorization = `Bearer ${user.token}`;
-        console.log('✅ Token added to request:', user.token.substring(0, 10) + '...');
       }
     }
   } catch (error) {
-    console.error('❌ Error reading token from localStorage:', error);
+    console.error('Error reading token from localStorage:', error);
   }
   return req;
-}, (error) => {
-  return Promise.reject(error);
-});
+}, (error) => Promise.reject(error));
 
 // Handle response errors
 API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      console.error('❌ Unauthorized - Token may be invalid or expired');
       localStorage.removeItem('userInfo');
       window.location.href = '/login';
     }

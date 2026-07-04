@@ -1,13 +1,9 @@
 import { io } from "socket.io-client";
 
-const SOCKET_URL = "http://localhost:5000";
+const SOCKET_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace("/api", "");
 
 let socket = null;
 
-/**
- * Returns a singleton, authenticated socket connection.
- * Creates the connection on first call; reuses it on subsequent calls.
- */
 export const getSocket = () => {
   if (socket && socket.connected) return socket;
 
@@ -46,9 +42,6 @@ export const getSocket = () => {
   return socket;
 };
 
-/**
- * Cleanly disconnects and clears the socket singleton (call on logout).
- */
 export const disconnectSocket = () => {
   if (socket) {
     socket.disconnect();

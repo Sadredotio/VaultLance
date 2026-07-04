@@ -78,10 +78,12 @@ const FreelancerProfile = () => {
     fetchData();
   }, [freelancerId]);
 
+  // ✅ FIXED: no hardcoded localhost:5000
   const getAvatarUrl = (avatarPath) => {
     if (!avatarPath) return DEFAULT_AVATAR;
     if (avatarPath.startsWith('http')) return avatarPath;
-    return `http://localhost:5000${avatarPath}`;
+    const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '');
+    return `${base}${avatarPath}`;
   };
 
   const completedContracts = contracts.filter(c => c.status === 'released');
@@ -127,7 +129,6 @@ const FreelancerProfile = () => {
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="max-w-5xl mx-auto mt-16 px-6">
-          {/* Skeleton */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 animate-pulse">
             <div className="flex gap-6">
               <div className="w-28 h-28 rounded-full bg-gray-200" />
@@ -304,7 +305,6 @@ const FreelancerProfile = () => {
         {activeTab === 'overview' && (
           <div className="space-y-6">
 
-            {/* About */}
             {freelancer.bio && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
@@ -314,7 +314,6 @@ const FreelancerProfile = () => {
               </div>
             )}
 
-            {/* Experience */}
             {freelancer.experience && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
@@ -330,7 +329,6 @@ const FreelancerProfile = () => {
               </div>
             )}
 
-            {/* Skills preview */}
             {skills.length > 0 && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -338,18 +336,12 @@ const FreelancerProfile = () => {
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {skills.slice(0, 8).map((skill, idx) => (
-                    <span
-                      key={idx}
-                      className="bg-blue-50 text-blue-700 border border-blue-100 px-4 py-1.5 rounded-full text-sm font-medium"
-                    >
+                    <span key={idx} className="bg-blue-50 text-blue-700 border border-blue-100 px-4 py-1.5 rounded-full text-sm font-medium">
                       {skill}
                     </span>
                   ))}
                   {skills.length > 8 && (
-                    <button
-                      onClick={() => setActiveTab('skills')}
-                      className="text-blue-500 text-sm font-medium hover:underline px-2"
-                    >
+                    <button onClick={() => setActiveTab('skills')} className="text-blue-500 text-sm font-medium hover:underline px-2">
                       +{skills.length - 8} more →
                     </button>
                   )}
@@ -357,7 +349,6 @@ const FreelancerProfile = () => {
               </div>
             )}
 
-            {/* Recent projects */}
             {contracts.length > 0 && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -370,9 +361,7 @@ const FreelancerProfile = () => {
                       <div key={contract._id} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
                         <div className="min-w-0">
                           <p className="font-semibold text-gray-800 truncate">{job?.title || 'Project'}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">
-                            {new Date(contract.createdAt).toLocaleDateString()}
-                          </p>
+                          <p className="text-xs text-gray-400 mt-0.5">{new Date(contract.createdAt).toLocaleDateString()}</p>
                         </div>
                         <div className="flex items-center gap-3 ml-4 flex-shrink-0">
                           <span className="font-bold text-green-600 text-sm">${contract.amount?.toLocaleString()}</span>
@@ -382,10 +371,7 @@ const FreelancerProfile = () => {
                     );
                   })}
                   {contracts.length > 3 && (
-                    <button
-                      onClick={() => setActiveTab('projects')}
-                      className="text-blue-500 text-sm font-medium hover:underline w-full text-center pt-1"
-                    >
+                    <button onClick={() => setActiveTab('projects')} className="text-blue-500 text-sm font-medium hover:underline w-full text-center pt-1">
                       View all {contracts.length} projects →
                     </button>
                   )}
@@ -393,7 +379,6 @@ const FreelancerProfile = () => {
               </div>
             )}
 
-            {/* Empty state */}
             {!freelancer.bio && !freelancer.experience && skills.length === 0 && contracts.length === 0 && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
                 <div className="text-5xl mb-3">🌱</div>
@@ -413,12 +398,11 @@ const FreelancerProfile = () => {
               </div>
             ) : (
               <>
-                {/* Summary row */}
                 <div className="grid grid-cols-3 gap-3 mb-2">
                   {[
                     { label: 'Completed', count: completedContracts.length, color: 'text-green-600', bg: 'bg-green-50 border-green-100' },
-                    { label: 'Active', count: activeContracts.length, color: 'text-blue-600', bg: 'bg-blue-50 border-blue-100' },
-                    { label: 'Pending', count: pendingContracts.length, color: 'text-yellow-600', bg: 'bg-yellow-50 border-yellow-100' },
+                    { label: 'Active',    count: activeContracts.length,    color: 'text-blue-600',  bg: 'bg-blue-50 border-blue-100' },
+                    { label: 'Pending',   count: pendingContracts.length,   color: 'text-yellow-600',bg: 'bg-yellow-50 border-yellow-100' },
                   ].map(s => (
                     <div key={s.label} className={`rounded-xl border p-4 text-center ${s.bg}`}>
                       <p className={`text-2xl font-black ${s.color}`}>{s.count}</p>
@@ -430,10 +414,7 @@ const FreelancerProfile = () => {
                 {contracts.map(contract => {
                   const job = typeof contract.jobId === 'object' ? contract.jobId : null;
                   return (
-                    <div
-                      key={contract._id}
-                      className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition"
-                    >
+                    <div key={contract._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition">
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0 flex-1">
                           <h4 className="font-bold text-gray-900 text-lg leading-tight">{job?.title || 'Project'}</h4>
@@ -449,7 +430,6 @@ const FreelancerProfile = () => {
                           <span className="text-xl font-black text-green-600">${contract.amount?.toLocaleString()}</span>
                         </div>
                       </div>
-
                       {contract.status === 'released' && (
                         <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 text-green-600">
                           <CheckCircle size={15} />
@@ -477,10 +457,7 @@ const FreelancerProfile = () => {
                 <h3 className="font-bold text-gray-900 mb-5 text-lg">All Skills ({skills.length})</h3>
                 <div className="flex flex-wrap gap-3">
                   {skills.map((skill, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 text-blue-800 px-5 py-2.5 rounded-xl font-semibold text-sm"
-                    >
+                    <div key={idx} className="flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 text-blue-800 px-5 py-2.5 rounded-xl font-semibold text-sm">
                       <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
                       {skill}
                     </div>
@@ -502,7 +479,6 @@ const FreelancerProfile = () => {
               </div>
             ) : (
               <>
-                {/* Average rating summary */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center gap-6">
                   <div className="text-center flex-shrink-0">
                     <p className="text-6xl font-black text-yellow-400">
@@ -531,13 +507,15 @@ const FreelancerProfile = () => {
                   </div>
                 </div>
 
-                {/* Individual reviews */}
                 {reviews.map(review => (
                   <div key={review._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
                     <div className="flex items-start gap-4">
                       {review.reviewerId?.avatar ? (
                         <img
-                          src={review.reviewerId.avatar.startsWith('http') ? review.reviewerId.avatar : `http://localhost:5000${review.reviewerId.avatar}`}
+                          src={review.reviewerId.avatar.startsWith('http')
+                            ? review.reviewerId.avatar
+                            : `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '')}${review.reviewerId.avatar}`
+                          }
                           alt={review.reviewerId?.name}
                           className="w-11 h-11 rounded-full object-cover border-2 border-gray-100 flex-shrink-0"
                         />

@@ -217,7 +217,7 @@ const Messages = () => {
   const getAvatarUrl = (avatar) => {
     if (!avatar) return DEFAULT_AVATAR;
     if (avatar.startsWith("http")) return avatar;
-    return `http://localhost:5000${avatar}`;
+    const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api',''); return `${base}${avatar}`;
   };
 
   const filteredConversations = conversations.filter((c) =>

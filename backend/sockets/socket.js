@@ -7,10 +7,24 @@ const Message = require('../models/message');
 // Track which userId is connected on which socket(s)
 const onlineUsers = new Map(); // userId (string) -> Set of socket ids
 
+// Same allowed origins as the Express CORS config in server.js — Socket.io
+// needs its own separate CORS setup, it doesn't share Express's cors() middleware.
+const allowedOrigins = [
+  process.env.CLIENT_URL, // your deployed frontend, e.g. https://vaultlance.vercel.app
+  "http://localhost:5173", // local Vite dev server
+  "http://localhost:3000"
+].filter(Boolean);
+
 function initSocket(httpServer) {
   const io = new Server(httpServer, {
     cors: {
-      origin: 'http://localhost:5173',
+      origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error(`Socket.io CORS blocked for origin: ${origin}`));
+        }
+      },
       methods: ['GET', 'POST'],
       credentials: true,
     },

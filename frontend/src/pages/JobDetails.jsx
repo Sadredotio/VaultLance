@@ -211,101 +211,101 @@ const JobDetails = () => {
         </div>
 
         {/* --- CLIENT PROFILE CARD --- */}
-        {client && (
-          <div className="mb-10 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-8 shadow-lg">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6">About the Client</h3>
-            
-            <div className="flex gap-8 items-start">
-              {/* Left: Avatar & Basic Info */}
-              <div className="flex-shrink-0">
-                <img 
-                  src={client.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
-                  alt={client.name}
-                  className="w-24 h-24 rounded-full border-4 border-blue-300 shadow-md"
-                />
-              </div>
+{client && (
+  <div className="mb-10 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-5 sm:p-8 shadow-lg">
+    <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">About the Client</h3>
+    
+    <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-start text-center sm:text-left">
+      {/* Left: Avatar & Basic Info */}
+      <div className="flex-shrink-0">
+        <img 
+          src={client.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
+          alt={client.name}
+          className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-blue-300 shadow-md"
+        />
+      </div>
 
-              {/* Right: Client Details */}
-              <div className="flex-1">
-                {/* Name & Headline */}
-                <div className="mb-4">
-                  <h2 className="text-2xl font-bold text-gray-900">{client.name}</h2>
-                  {client.headline && (
-                    <p className="text-blue-700 font-semibold text-lg mt-1">{client.headline}</p>
-                  )}
-                </div>
+      {/* Right: Client Details */}
+      <div className="flex-1 w-full min-w-0">
+        {/* Name & Headline */}
+        <div className="mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{client.name}</h2>
+          {client.headline && (
+            <p className="text-blue-700 font-semibold text-base sm:text-lg mt-1">{client.headline}</p>
+          )}
+        </div>
 
-                {/* Stats Row */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  {/* Jobs Posted */}
-                  <div className="bg-white p-4 rounded-lg border border-blue-100 text-center shadow-sm">
-                    <p className="text-4xl font-bold text-blue-600">{clientJobCount}</p>
-                    <p className="text-gray-600 font-semibold text-sm">Jobs Posted</p>
-                  </div>
+        {/* Stats Row */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
+          {/* Jobs Posted */}
+          <div className="bg-white p-2 sm:p-4 rounded-lg border border-blue-100 text-center shadow-sm">
+            <p className="text-xl sm:text-4xl font-bold text-blue-600">{clientJobCount}</p>
+            <p className="text-gray-600 font-semibold text-[11px] sm:text-sm leading-tight">Jobs Posted</p>
+          </div>
 
-                  {/* Rating */}
-                  <div className="bg-white p-4 rounded-lg border border-blue-100 text-center shadow-sm">
-                    <p className="text-4xl font-bold text-yellow-500">
-                      {client.rating ? client.rating.toFixed(1) : '0'}
-                    </p>
-                    <p className="text-gray-600 font-semibold text-sm">⭐ Rating</p>
-                  </div>
+          {/* Rating */}
+          <div className="bg-white p-2 sm:p-4 rounded-lg border border-blue-100 text-center shadow-sm">
+            <p className="text-xl sm:text-4xl font-bold text-yellow-500">
+              {client.rating ? client.rating.toFixed(1) : '0'}
+            </p>
+            <p className="text-gray-600 font-semibold text-[11px] sm:text-sm leading-tight">⭐ Rating</p>
+          </div>
 
-                  {/* Member Since */}
-                  <div className="bg-white p-4 rounded-lg border border-blue-100 text-center shadow-sm">
-                    <p className="text-lg font-bold text-green-600">
-                      {client.createdAt ? new Date(client.createdAt).getFullYear() : 'N/A'}
-                    </p>
-                    <p className="text-gray-600 font-semibold text-sm">Member Since</p>
-                  </div>
-                </div>
+          {/* Member Since */}
+          <div className="bg-white p-2 sm:p-4 rounded-lg border border-blue-100 text-center shadow-sm">
+            <p className="text-base sm:text-lg font-bold text-green-600">
+              {client.createdAt ? new Date(client.createdAt).getFullYear() : 'N/A'}
+            </p>
+            <p className="text-gray-600 font-semibold text-[11px] sm:text-sm leading-tight">Member Since</p>
+          </div>
+        </div>
 
-                {/* Bio */}
-                {client.bio && (
-                  <div className="mb-4">
-                    <h4 className="font-bold text-gray-700 mb-2">About:</h4>
-                    <p className="text-gray-600 text-sm leading-relaxed">{client.bio}</p>
-                  </div>
-                )}
-
-                {/* Contact Info */}
-                <div className="bg-white p-4 rounded-lg border border-blue-100 mt-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-gray-600 font-semibold">📧 Contact:</span>
-                    <a 
-                      href={`mailto:${client.email}`}
-                      className="text-blue-600 hover:text-blue-800 font-semibold break-all"
-                    >
-                      {client.email}
-                    </a>
-                  </div>
-                  {client.createdAt && (
-                    <div className="flex items-center gap-3 mt-3 text-sm text-gray-600">
-                      <span>🕐 Member for {Math.floor((new Date() - new Date(client.createdAt)) / (1000 * 60 * 60 * 24 * 30))} months</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Message Client Button (Freelancer only) */}
-                {user.role === 'freelancer' && (
-                  <button
-                    onClick={() => navigate(`/messages?with=${client._id}&job=${jobId}`)}
-                    className="mt-4 inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-semibold shadow-sm transition"
-                  >
-                    <MessageCircle size={18} /> Message Client
-                  </button>
-                )}
-
-                {/* Trustworthiness Indicator */}
-                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-green-800 font-semibold text-sm flex items-center gap-2">
-                    ✅ Verified Client with {clientJobCount} active jobs
-                  </p>
-                </div>
-              </div>
-            </div>
+        {/* Bio */}
+        {client.bio && (
+          <div className="mb-4">
+            <h4 className="font-bold text-gray-700 mb-2">About:</h4>
+            <p className="text-gray-600 text-sm leading-relaxed">{client.bio}</p>
           </div>
         )}
+
+        {/* Contact Info */}
+        <div className="bg-white p-4 rounded-lg border border-blue-100 mt-4 text-left">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+            <span className="text-gray-600 font-semibold">📧 Contact:</span>
+            <a 
+              href={`mailto:${client.email}`}
+              className="text-blue-600 hover:text-blue-800 font-semibold break-all"
+            >
+              {client.email}
+            </a>
+          </div>
+          {client.createdAt && (
+            <div className="flex items-center gap-3 mt-3 text-sm text-gray-600">
+              <span>🕐 Member for {Math.floor((new Date() - new Date(client.createdAt)) / (1000 * 60 * 60 * 24 * 30))} months</span>
+            </div>
+          )}
+        </div>
+
+        {/* Message Client Button (Freelancer only) */}
+        {user.role === 'freelancer' && (
+          <button
+            onClick={() => navigate(`/messages?with=${client._id}&job=${jobId}`)}
+            className="mt-4 w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-semibold shadow-sm transition"
+          >
+            <MessageCircle size={18} /> Message Client
+          </button>
+        )}
+
+        {/* Trustworthiness Indicator */}
+        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-left">
+          <p className="text-green-800 font-semibold text-sm flex items-center gap-2">
+            ✅ Verified Client with {clientJobCount} active jobs
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
         {/* --- FREELANCER VIEW: Apply Button --- */}
         {user.role === 'freelancer' && job.status === 'open' && (

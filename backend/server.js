@@ -53,9 +53,21 @@ const initSocket = require("./sockets/socket");
 const app = express();
 
 // Middleware
+const allowedOrigins = [
+  process.env.CLIENT_URL, // your deployed frontend, e.g. https://vaultlance.vercel.app
+  "http://localhost:5173", // local Vite dev server
+  "http://localhost:3000"  // in case you ever run frontend on this port too
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],

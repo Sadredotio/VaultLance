@@ -116,7 +116,7 @@ const Navbar = () => {
             className="flex items-center gap-2.5 hover:bg-gray-50 px-2 sm:px-3 py-1.5 rounded-xl transition-colors border border-transparent hover:border-gray-100"
           >
             <img
-              src={user?.avatar?.startsWith('http') ? user.avatar : user?.avatar ? `http://localhost:5000${user.avatar}` : "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
+              src={user?.avatar?.startsWith('http') ? user.avatar : user?.avatar ? `${(import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace("/api","")}${user.avatar}` : "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
               alt="Avatar"
               className="w-8 h-8 rounded-full object-cover border-2 border-blue-100"
             />
@@ -161,7 +161,7 @@ const Navbar = () => {
         {/* 2. Profile Info */}
         <div className="p-6 text-center border-b">
           <img 
-            src={user?.avatar?.startsWith('http') ? user.avatar : user?.avatar ? `http://localhost:5000${user.avatar}` : "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} 
+            src={user?.avatar?.startsWith('http') ? user.avatar : user?.avatar ? `${(import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace("/api","")}${user.avatar}` : "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} 
             alt="Avatar"
             className="w-16 h-16 rounded-full mx-auto mb-3 border-2 border-blue-100 shadow-sm"
           />

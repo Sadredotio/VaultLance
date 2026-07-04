@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar';
 import AuthContext from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { User, Briefcase, FileText, Code, Edit3, Save, X, Camera } from 'lucide-react';
+import API, { SERVER_URL } from '../api';
 
 const DEFAULT_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix";
 
@@ -26,7 +27,7 @@ const Profile = () => {
   const getAvatarUrl = (avatarPath) => {
     if (!avatarPath) return DEFAULT_AVATAR;
     if (avatarPath.startsWith('http')) return avatarPath;
-    return `http://localhost:5000${avatarPath}`;
+    return `${SERVER_URL}${avatarPath}`;
   };
 
   // Initialize data correctly
@@ -75,34 +76,26 @@ const Profile = () => {
         formData.append('avatar', avatarFile);
       }
 
-      const response = await fetch('http://localhost:5000/api/users/profile', {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData,
+      const { data } = await API.put('/users/profile', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      const data = await response.json();
+      const updatedUser = {
+        ...storedUser,
+        ...data,
+        token
+      };
 
-      if (response.ok) {
-        const updatedUser = { 
-            ...storedUser, 
-            ...data,       
-            token: token   
-        };
+      localStorage.setItem('userInfo', JSON.stringify(updatedUser));
+      setUser(updatedUser);
 
-        localStorage.setItem('userInfo', JSON.stringify(updatedUser));
-        setUser(updatedUser);
+      toast.success("Profile updated successfully!");
+      setIsEditing(false);
 
-        toast.success("Profile updated successfully!");
-        setIsEditing(false);
-        
-        setTimeout(() => { window.location.reload(); }, 800);
-      } else {
-        toast.error(data.message || "Update failed");
-      }
+      setTimeout(() => { window.location.reload(); }, 800);
     } catch (error) {
       console.error("Critical Update Error:", error);
-      toast.error("Network error. Check if backend is running.");
+      toast.error(error.response?.data?.message || "Network error. Check if backend is running.");
     } finally {
       setLoading(false);
     }

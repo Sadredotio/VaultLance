@@ -44,6 +44,8 @@ import ViewApplicants from "./pages/client/ViewApplicants";
 
 // Admin Pages
 import AdminDashboard from "./pages/AdminDashboard";
+import Admin from './pages/Admin';
+import useTrackVisit from './hooks/useTrackVisit';
 
 // User Profile
 import Profile from "./pages/Profile";
@@ -72,12 +74,19 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
   return children;
 };
 
+
+function AppInner() {
+  useTrackVisit();
+  return null;
+}
+
 function App() {
+
   return (
     <AuthProvider>
       <Router>
+        <AppInner />
         <Toaster position="top-right" />
-
         <Routes>
           <Route path="/faq" element={<FAQ />} />
 
@@ -87,6 +96,8 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
+
+          <Route path="/admin" element={<Admin />} />
 
           {/* ===== SHARED DASHBOARD ===== */}
           <Route
@@ -274,6 +285,7 @@ function App() {
         </Routes>
       </Router>
     </AuthProvider>
+    
   );
 }
 

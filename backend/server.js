@@ -3,6 +3,8 @@ const http = require("http");
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const { trackUser } = require('./middleware/trackVisitor');
+const { protect } = require('./middleware/authMiddleware');
 
 require("dotenv").config();
 
@@ -49,6 +51,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const walletWebhookRoute = require("./routes/walletWebhookRoute");
 const initSocket = require("./sockets/socket");
 
+
 // Express App
 const app = express();
 
@@ -76,6 +79,7 @@ app.use(
 
 app.use(express.json());
 
+
 app.use(
   session({
     secret: process.env.JWT_SECRET,
@@ -86,7 +90,6 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
-
 // MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
@@ -108,7 +111,6 @@ app.get("/", (req, res) => {
 
 // API Routes
 app.use("/api/users", userRoutes);
-app.use("/api/jobs", jobRoutes);
 app.use("/api/contracts", contractRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/wallet", walletRoutes);
@@ -118,6 +120,7 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/admin", adminRoutes);
+app.use('/api/jobs', protect, trackUser, jobRoutes);
 
 
 app.use(

@@ -21,6 +21,16 @@ const userSchema = mongoose.Schema({
     default: null,
   },
 
+  lastVisited: { 
+    type: Date, 
+    default: null 
+  },
+
+  visitCount: { 
+    type: Number, 
+    default: 0 
+  },
+  
   provider: {
     type: String,
     enum: ["local", "google","github", "linkedin"],

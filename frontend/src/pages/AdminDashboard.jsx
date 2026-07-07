@@ -45,7 +45,7 @@ const AdminDashboard = () => {
 
   const fetchAdminData = async () => {
     try {
-      cconst[(disputesRes, transactionsRes, withdrawalsRes)] =
+      const[disputesRes, transactionsRes, withdrawalsRes] =
         await Promise.all([
           API.get("/disputes"),
           API.get("/transactions/stats"),

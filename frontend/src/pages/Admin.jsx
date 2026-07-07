@@ -6,7 +6,7 @@ import API from "../api";
 import toast from "react-hot-toast";
 import { Users, UserCheck, UserX, Activity, Eye, Briefcase, Search, Clock, TrendingUp } from "lucide-react";
 
-const ADMIN_EMAIL = "mdsadrealam@gmail.com";
+const ADMIN_EMAIL = "mdsadrealam8207@gmail.com";
 const DEFAULT_AVATAR = "https://api.dicebear.com/7.x/avataaars/svg?seed=default";
 
 const formatTime = (date) => {

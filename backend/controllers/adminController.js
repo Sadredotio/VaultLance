@@ -1,7 +1,7 @@
 const User = require('../models/user');
 const Visitor = require('../models/visitor');
 
-const ADMIN_EMAIL = 'mdsadrealam@gmail.com';
+const ADMIN_EMAIL = 'mdsadrealam8207@gmail.com';
 
 // ── Admin guard middleware ────────────────────────────────────
 // Use this on every admin route

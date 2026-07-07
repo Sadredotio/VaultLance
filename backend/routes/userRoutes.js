@@ -73,7 +73,7 @@ router.get(
   "/auth/google/callback",
   passport.authenticate("google", {
     session: false,
-    failureRedirect: `${process.env.CLIENT_URL}/login`,
+    failureRedirect: `${process.env.BACKEND_URL}/login`,
   }),
   (req, res) => {
     const token = jwt.sign(

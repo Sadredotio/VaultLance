@@ -80,7 +80,7 @@ const Admin = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-black text-gray-900">📊 Admin Analytics</h1>
-          <p className="text-gray-500 mt-1">VaultLance visitor and user activity — visible only to you</p>
+          <p className="text-gray-500 mt-1">VaultLance visitor and user activity</p>
         </div>
 
         {/* Stats cards */}

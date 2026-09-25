@@ -51,6 +51,7 @@ const ContactModal = ({ isOpen, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("CONTACT FORM SUBMITTED");
     if (!validate()) return;
 
     setLoading(true);

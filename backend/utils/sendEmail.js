@@ -1,28 +1,25 @@
-const sendEmail = require("../utils/sendEmail");
+const nodemailer = require("nodemailer");
 
-const sendContactMessage = async (req, res) => {
-  try {
-    const { name, email, message } = req.body;
-
-    console.log("SMTP_EMAIL is:", process.env.SMTP_EMAIL);
-    console.log("SMTP_PASSWORD length:", process.env.SMTP_PASSWORD?.length);
-
-    if (!name || !email || !message) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    await sendEmail({
-      email: process.env.SMTP_EMAIL,
-      subject: `VaultLance Support Query from ${name}`,
-      message: `Name: ${name}\nEmail: ${email}\n\nQuery:\n${message}`,
-    });
-
-    console.log("New support query:", { name, email, message });
-    res.status(200).json({ message: "Message received" });
-  } catch (error) {
-    console.error("Support contact error:", error);
-    res.status(500).json({ message: "Something went wrong" });
+const sendEmail = async ({ email, subject, message }) => {
+  if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) {
+    throw new Error("Missing SMTP_EMAIL or SMTP_PASSWORD in environment variables.");
   }
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.SMTP_EMAIL,
+      pass: process.env.SMTP_PASSWORD,
+    },
+  });
+
+  await transporter.sendMail({
+    from: `VaultLance <${process.env.SMTP_EMAIL}>`,
+    to: email,
+    subject,
+    text: message,
+    html: `<p>${String(message).replace(/\n/g, "<br />")}</p>`,
+  });
 };
 
-module.exports = { sendContactMessage };
+module.exports = sendEmail;

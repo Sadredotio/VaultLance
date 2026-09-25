@@ -238,7 +238,8 @@ const updateProfile = async (req, res) => {
 
       // Handle Avatar Image
       if (req.file) {
-        user.avatar = `http://localhost:5000/uploads/${req.file.filename}`;
+        const baseUrl = process.env.BACKEND_URL || "http://localhost:5000";
+        user.avatar = `${baseUrl}/uploads/${req.file.filename}`;
       }
 
       // Handle Password update (if provided)

@@ -25,7 +25,7 @@ const ContactModal = ({ isOpen, onClose }) => {
     if (!name.trim()) newErrors.name = "Name is required";
     if (!email.trim()) {
       newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {  
       newErrors.email = "Please enter a valid email address";
     }
     if (!message.trim()) {
@@ -57,7 +57,28 @@ const ContactModal = ({ isOpen, onClose }) => {
     try {
       // TODO: replace with your real endpoint, e.g.:
       // await API.post('/support/contact', { name, email, message });
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      console.log("API URL:", import.meta.env.VITE_API_URL);
+      const response = await fetch(
+        
+        `${import.meta.env.VITE_API_URL}/support/contact`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            message,
+          }),
+        }
+      );
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to send query");
+      }
 
       toast.success("Your message has been sent! We'll get back to you soon.", {
         icon: "✅",

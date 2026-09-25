@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-
+const sendEmail = require("../utils/sendEmail");
 const passport = require("passport");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
@@ -55,6 +55,41 @@ router.post("/login", loginUser);
 router.post("/forgotpassword", forgotPassword);
 
 router.put("/resetpassword/:token", resetPassword);
+
+// Contact Support
+router.post("/contact", async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+
+    if (!name || !email || !message) {
+      return res.status(400).json({
+        message: "Name, email and message are required",
+      });
+    }
+
+    await sendEmail({
+      email: process.env.SMTP_EMAIL,
+      subject: `VaultLance Support Query from ${name}`,
+      message: `
+Name: ${name}
+Email: ${email}
+
+Query:
+${message}
+      `,
+    });
+
+    res.status(200).json({
+      message: "Your query has been sent successfully",
+    });
+  } catch (error) {
+    console.error("Contact email error:", error);
+
+    res.status(500).json({
+      message: "Failed to send your query",
+    });
+  }
+});
 
 // ==============================
 // Google OAuth

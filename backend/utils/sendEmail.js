@@ -4,6 +4,9 @@ const sendContactMessage = async (req, res) => {
   try {
     const { name, email, message } = req.body;
 
+    console.log("SMTP_EMAIL is:", process.env.SMTP_EMAIL);
+    console.log("SMTP_PASSWORD length:", process.env.SMTP_PASSWORD?.length);
+
     if (!name || !email || !message) {
       return res.status(400).json({ message: "All fields are required" });
     }

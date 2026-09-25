@@ -126,9 +126,9 @@ const Login = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL}`
+    window.location.href = `${import.meta.env.VITE_API_URL}/users/auth/google`;
   };
-
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex flex-col relative">
       {/* Premium Animated Background */}
@@ -244,7 +244,7 @@ const Login = () => {
                   type="button"
                   onClick={() =>
                     (window.location.href =
-                      `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users/auth/github`)
+                      `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/users/auth/github`)
                   }
                   className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white py-2.5 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 group backdrop-blur-sm"
                 >

@@ -1,20 +1,25 @@
-const nodemailer = require("nodemailer");
+const sendEmail = require("../utils/sendEmail");
 
-const sendEmail = async (options) => {
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.SMTP_EMAIL,
-      pass: process.env.SMTP_PASSWORD,
-    },
-  });
+const sendContactMessage = async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
 
-  await transporter.sendMail({
-    from: `"VaultLance Support" <${process.env.SMTP_EMAIL}>`,
-    to: options.email,
-    subject: options.subject,
-    text: options.message,
-  });
+    if (!name || !email || !message) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    await sendEmail({
+      email: process.env.SMTP_EMAIL,
+      subject: `VaultLance Support Query from ${name}`,
+      message: `Name: ${name}\nEmail: ${email}\n\nQuery:\n${message}`,
+    });
+
+    console.log("New support query:", { name, email, message });
+    res.status(200).json({ message: "Message received" });
+  } catch (error) {
+    console.error("Support contact error:", error);
+    res.status(500).json({ message: "Something went wrong" });
+  }
 };
 
-module.exports = sendEmail;
+module.exports = { sendContactMessage };

@@ -21,6 +21,7 @@ import {
   Inbox,
   Send,
   Search,
+  X,
   LayoutGrid,
   List,
   Plus,
@@ -573,13 +574,26 @@ const Dashboard = () => {
   const firstName = user.name?.split(" ")[0] || "there";
 
   const q = query.trim().toLowerCase();
+  const terms = q.split(/\s+/).filter(Boolean);
   const filteredJobs = jobs.filter((job) => {
     const matchesStatus = filterStatus === "all" || job.status === filterStatus;
-    const haystack = [job.title, job.description, job.category, ...toSkills(job.skills)]
-      .filter(Boolean)
+    const haystack = [
+      job.title,
+      job.description,
+      job.category,
+      job.timeline,
+      job.experienceLevel,
+      job.status,
+      job.budget,
+      ...toSkills(job.skills),
+    ]
+      .filter((v) => v !== undefined && v !== null)
+      .map((v) => String(v))
       .join(" ")
-      .toLowerCase();
-    return matchesStatus && (!q || haystack.includes(q));
+      .toLowerCase()
+      .replace(/_/g, " ");
+    // every typed word must appear somewhere, in any order
+    return matchesStatus && terms.every((t) => haystack.includes(t));
   });
 
   const distTotal = (stats.open || 0) + (stats.in_progress || 0) + (stats.completed || 0);
@@ -768,8 +782,17 @@ const Dashboard = () => {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search title, skill or category"
-                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] py-2.5 pl-10 pr-4 text-sm text-white placeholder-zinc-600 transition focus:border-amber-300/40 focus:outline-none focus:ring-2 focus:ring-amber-300/20"
+                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] py-2.5 pl-10 pr-10 text-sm text-white placeholder-zinc-600 transition focus:border-amber-300/40 focus:outline-none focus:ring-2 focus:ring-amber-300/20"
                 />
+                {query && (
+                  <button
+                    onClick={() => setQuery("")}
+                    aria-label="Clear search"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-zinc-500 hover:text-white"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
               <div className="inline-flex rounded-xl bg-white/[0.04] p-1 ring-1 ring-white/[0.08]">
                 {[
